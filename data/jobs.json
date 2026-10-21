@@ -1,0 +1,59 @@
+
+[
+  {
+    "id": 1,
+    "title": "Junior Full Stack Developer",
+    "company": "TechNova",
+    "location": "Remote, India",
+    "skills": ["React", "Node.js", "JavaScript", "MongoDB"],
+    "experience_years": 0,
+    "employment_type": "Full-time",
+    "is_fresher_friendly": true,
+    "apply_url": "https://example.com/jobs/1"
+  },
+  {
+    "id": 2,
+    "title": "Backend Developer Intern",
+    "company": "CloudBridge",
+    "location": "Mumbai, India",
+    "skills": ["Python", "FastAPI", "SQL", "REST APIs"],
+    "experience_years": 0,
+    "employment_type": "Internship",
+    "is_fresher_friendly": true,
+    "apply_url": "https://example.com/jobs/2"
+  },
+  {
+    "id": 3,
+    "title": "React Developer",
+    "company": "PixelWorks",
+    "location": "Pune, India",
+    "skills": ["React", "JavaScript", "CSS", "REST APIs"],
+    "experience_years": 1,
+    "employment_type": "Full-time",
+    "is_fresher_friendly": false,
+    "apply_url": "https://example.com/jobs/3"
+  },
+  {
+    "id": 4,
+    "title": "Java Software Engineer Trainee",
+    "company": "CodeHarbor",
+    "location": "Bengaluru, India",
+    "skills": ["Java", "SQL", "Spring Boot", "Git"],
+    "experience_years": 0,
+    "employment_type": "Full-time",
+    "is_fresher_friendly": true,
+    "apply_url": "https://example.com/jobs/4"
+  },
+  {
+    "id": 5,
+    "title": "Node.js Backend Intern",
+    "company": "DataNest",
+    "location": "Remote, India",
+    "skills": ["Node.js", "Express", "MongoDB", "REST APIs"],
+    "experience_years": 0,
+    "employment_type": "Internship",
+    "is_fresher_friendly": true,
+    "apply_url": "https://example.com/jobs/5"
+  }
+]
+

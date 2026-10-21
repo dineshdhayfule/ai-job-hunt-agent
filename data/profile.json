@@ -1,0 +1,49 @@
+
+{
+  "target_roles": [
+    "Software Engineer",
+    "Software Development Engineer",
+    "Full Stack Developer",
+    "Backend Developer",
+    "Frontend Developer",
+    "Java Developer",
+    "Software Engineer Intern",
+    "Backend Developer Intern",
+    "Full Stack Developer Intern"
+  ],
+  "skills": [
+    "Java",
+    "Python",
+    "JavaScript",
+    "C",
+    "C++",
+    "React",
+    "Node.js",
+    "Express",
+    "Next.js",
+    "HTML",
+    "CSS",
+    "Bootstrap",
+    "MySQL",
+    "MongoDB",
+    "Firebase",
+    "Oracle",
+    "Git",
+    "GitHub",
+    "REST APIs",
+    "Spring Boot"
+  ],
+  "experience_level": "fresher",
+  "graduation_year": 2026,
+  "preferred_locations": [
+    "Remote, India",
+    "Mumbai, India"
+  ],
+  "willing_to_relocate": true,
+  "preferred_employment_types": [
+    "Full-time",
+    "Internship"
+  ],
+  "minimum_match_score": 60
+}
+
