@@ -1,40 +1,181 @@
-
 {
   "target_roles": [
     "Software Engineer",
     "Software Development Engineer",
-    "Full Stack Developer",
     "Backend Developer",
-    "Frontend Developer",
     "Java Developer",
+    "Full Stack Developer",
     "Software Engineer Intern",
     "Backend Developer Intern",
+    "Java Developer Intern",
     "Full Stack Developer Intern"
   ],
   "skills": [
     "Java",
+    "Java 21",
+    "Spring Boot",
+    "Spring Boot 3",
+    "Java Servlets",
+    "JSP",
+    "JDBC",
     "Python",
-    "JavaScript",
-    "C",
     "C++",
-    "React",
+    "JavaScript",
+    "TypeScript",
     "Node.js",
-    "Express",
-    "Next.js",
-    "HTML",
-    "CSS",
+    "Express.js",
+    "React",
+    "React 19",
+    "Vite",
+    "HTML5",
+    "CSS3",
     "Bootstrap",
+    "Next.js",
+    "REST APIs",
+    "SQL",
     "MySQL",
     "MongoDB",
+    "Mongoose",
+    "Redis",
     "Firebase",
-    "Oracle",
+    "JWT",
+    "Authentication",
+    "Role-Based Access Control",
+    "OOP",
+    "Data Structures and Algorithms",
+    "MVC",
+    "Layered Architecture",
+    "Concurrency",
+    "JUnit 5",
+    "Mockito",
+    "Testcontainers",
+    "Unit Testing",
+    "Integration Testing",
+    "Debugging",
+    "Docker",
+    "Docker Compose",
     "Git",
     "GitHub",
-    "REST APIs",
-    "Spring Boot"
+    "GitHub Actions",
+    "CI/CD",
+    "SDLC",
+    "Database Design",
+    "Axios",
+    "Tailwind CSS",
+    "Google Gemini AI",
+    "Machine Learning",
+    "Scikit-learn",
+    "Pandas",
+    "Streamlit"
   ],
   "experience_level": "fresher",
   "graduation_year": 2026,
+  "education": [
+    {
+      "degree": "B.Tech in Computer Science and Engineering",
+      "institution": "N.K. Orchid College of Engineering & Technology, Solapur",
+      "period": "2023-2026",
+      "cgpa": 7.5
+    },
+    {
+      "degree": "Diploma in Information Technology",
+      "institution": "Government Polytechnic, Solapur",
+      "period": "2020-2023",
+      "percentage": 87.69
+    }
+  ],
+  "experience": [
+    {
+      "role": "Java Intern",
+      "company": "Vikrama Technology",
+      "location": "Solapur",
+      "period": "Jul-Aug 2022",
+      "skills": [
+        "Java",
+        "Servlets",
+        "JSP",
+        "JDBC",
+        "MVC",
+        "SQL",
+        "Debugging",
+        "SDLC"
+      ]
+    },
+    {
+      "role": "Virtual Machine Learning Intern",
+      "company": "TechSaksham",
+      "period": "Jan-Feb 2025",
+      "skills": [
+        "Python",
+        "Scikit-learn",
+        "Pandas",
+        "Machine Learning",
+        "Streamlit"
+      ],
+      "reported_model_accuracy_percent": 87
+    }
+  ],
+  "projects": [
+    {
+      "name": "Token Bucket Rate Limiter",
+      "period": "July 2026",
+      "skills": [
+        "Java 21",
+        "Spring Boot 3",
+        "Redis",
+        "React 19",
+        "TypeScript",
+        "Docker",
+        "JUnit 5",
+        "Mockito",
+        "Testcontainers",
+        "GitHub Actions",
+        "Concurrency",
+        "Monitoring"
+      ],
+      "reported_tests": 48,
+      "reported_test_failures": 0
+    },
+    {
+      "name": "Sugarcane Platform",
+      "period": "June 2026",
+      "skills": [
+        "React 19",
+        "Vite",
+        "Node.js",
+        "Express 5",
+        "MongoDB",
+        "Mongoose",
+        "JWT",
+        "bcryptjs",
+        "Axios",
+        "Tailwind CSS",
+        "REST APIs",
+        "Role-Based Access Control"
+      ]
+    },
+    {
+      "name": "Health Bytes - AI-Powered Health and Nutrition Platform",
+      "period": "June 2025",
+      "skills": [
+        "React",
+        "Node.js",
+        "MongoDB",
+        "Google Gemini AI"
+      ]
+    },
+    {
+      "name": "We-Chat Android Chat Application",
+      "period": "June 2024",
+      "skills": [
+        "Java",
+        "Android",
+        "Firebase Authentication",
+        "Firebase Realtime Database",
+        "Firebase Storage"
+      ]
+    }
+  ],
   "preferred_locations": [
     "Remote, India",
     "Mumbai, India"
@@ -44,6 +185,5 @@
     "Full-time",
     "Internship"
   ],
-  "minimum_match_score": 60
+  "minimum_match_score": 75
 }
-
