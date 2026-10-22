@@ -9,5 +9,69 @@
   "minimum_match_score": 75,
   "skills_to_learn": [],
   "excluded_companies": [],
-  "search_history": []
+  "search_history": [
+    {
+      "query": "software development jobs for freshers in India",
+      "filters": {
+        "employment_type": "Full-time",
+        "location": "India"
+      },
+      "results_count": 0,
+      "timestamp": "2026-10-22T08:15:52.802185+00:00"
+    },
+    {
+      "query": "Software development jobs for 2026 B.Tech CS fresher in India (Software Engineer, SDE, Backend Developer, Java Developer, Full Stack Developer, Software Development Intern roles)",
+      "filters": {
+        "location": "Remote",
+        "employment_type": "Full-time"
+      },
+      "results_count": 0,
+      "timestamp": "2026-10-22T08:18:08.264240+00:00"
+    },
+    {
+      "query": "Software development jobs for 2026 B.Tech CS fresher in India (Software Engineer, SDE, Backend Developer, Java Developer, Full Stack Developer, Software Development Intern roles)",
+      "filters": {
+        "employment_type": "Full-time",
+        "location": "Mumbai"
+      },
+      "results_count": 0,
+      "timestamp": "2026-10-22T08:18:08.336931+00:00"
+    },
+    {
+      "query": "Software development jobs for 2026 B.Tech CS fresher in India (Software Engineer, SDE, Backend Developer, Java Developer, Full Stack Developer, Software Development Intern roles)",
+      "filters": {
+        "location": "Remote",
+        "employment_type": "Internship"
+      },
+      "results_count": 0,
+      "timestamp": "2026-10-22T08:18:08.584175+00:00"
+    },
+    {
+      "query": "Software development jobs for 2026 B.Tech CS fresher in India (Software Engineer, SDE, Backend Developer, Java Developer, Full Stack Developer, Software Development Intern roles)",
+      "filters": {
+        "employment_type": "Internship",
+        "location": "Mumbai"
+      },
+      "results_count": 0,
+      "timestamp": "2026-10-22T08:18:08.786362+00:00"
+    },
+    {
+      "query": "best matching software engineering jobs",
+      "filters": {
+        "employment_type": "Full-time, Internship, Contract",
+        "location": "Remote"
+      },
+      "results_count": 1,
+      "timestamp": "2026-10-22T10:14:09.089735+00:00"
+    },
+    {
+      "query": "live remote software engineer jobs worldwide posted in the last 7 days (168 hours), including full-time, internship, or contract roles.",
+      "filters": {
+        "employment_type": "Full-time, Internship, Contract",
+        "location": "Remote"
+      },
+      "results_count": 1,
+      "timestamp": "2026-10-22T11:08:13.614295+00:00"
+    }
+  ]
 }

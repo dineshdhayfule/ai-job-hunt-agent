@@ -323,6 +323,210 @@ class TestRunAgent(unittest.TestCase):
         # Only 2 actual tool executions (3rd should be budget-exceeded).
         self.assertEqual(mock_exec.call_count, 2)
 
+    @patch("agent.client")
+    @patch("agent.execute_tool")
+    def test_intermediate_text_not_duplicated_in_history(self, mock_exec, mock_client):
+        """Intermediate assistant text is stripped from model history during tool rounds."""
+        from agent import run_agent
+
+        tool_response = MagicMock()
+        fc = MagicMock()
+        fc.name = "get_memory"
+        fc.args = {}
+        text_part = MagicMock()
+        text_part.text = "I am checking your saved memory first."
+
+        content = MagicMock()
+        content.role = "model"
+        content.parts = [text_part, fc]
+        candidate = MagicMock()
+        candidate.content = content
+        tool_response.candidates = [candidate]
+        tool_response.function_calls = [fc]
+        tool_response.text = "I am checking your saved memory first."
+
+        final_response = make_text_response("Here are the results.")
+
+        mock_client.models.generate_content.side_effect = [
+            tool_response,
+            final_response,
+        ]
+        mock_exec.return_value = {"minimum_match_score": 75}
+
+        run_agent("Check memory.")
+
+        second_call_contents = mock_client.models.generate_content.call_args_list[1].kwargs["contents"]
+        self.assertEqual(second_call_contents[0].role, "user")
+        model_turn = second_call_contents[1]
+        self.assertEqual(model_turn.role, "model")
+        for part in model_turn.parts:
+            self.assertFalse(isinstance(getattr(part, "text", None), str) and getattr(part, "text", ""))
+        self.assertEqual(second_call_contents[2].role, "user")
+
+    @patch("agent.client")
+    @patch("agent.execute_tool")
+    def test_tool_responses_correspond_to_function_calls(self, mock_exec, mock_client):
+        """Every tool response corresponds to the correct function call in order."""
+        from agent import run_agent
+
+        tool_response = make_tool_call_response(
+            ("get_memory", {}),
+            ("search_jobs", {"skills": ["Java"]}),
+        )
+        text_response = make_text_response("Matched jobs found.")
+
+        mock_client.models.generate_content.side_effect = [
+            tool_response,
+            text_response,
+        ]
+        mock_exec.side_effect = [
+            {"minimum_match_score": 75},
+            {"count": 1, "jobs": []},
+        ]
+
+        run_agent("Search Java jobs with preferences.")
+
+        second_call_contents = mock_client.models.generate_content.call_args_list[1].kwargs["contents"]
+        tool_turn = second_call_contents[2]
+        self.assertEqual(tool_turn.role, "user")
+        self.assertEqual(len(tool_turn.parts), 2)
+        resp1 = tool_turn.parts[0].function_response
+        resp2 = tool_turn.parts[1].function_response
+        self.assertEqual(resp1.name, "get_memory")
+        self.assertEqual(resp2.name, "search_jobs")
+
+    @patch("agent.MAX_TOTAL_TOOL_CALLS", 1)
+    @patch("agent.client")
+    @patch("agent.execute_tool")
+    def test_tool_budget_exhaustion_single_user_turn(self, mock_exec, mock_client):
+        """Tool budget exhaustion does not create consecutive user-role messages."""
+        from agent import run_agent
+
+        tool_response = make_tool_call_response(
+            ("get_memory", {}),
+            ("search_jobs", {}),
+        )
+        final_response = make_text_response("Done within budget.")
+
+        mock_client.models.generate_content.side_effect = [
+            tool_response,
+            final_response,
+        ]
+        mock_exec.return_value = {"minimum_match_score": 75}
+
+        run_agent("Do tasks within budget.")
+
+        second_call_contents = mock_client.models.generate_content.call_args_list[1].kwargs["contents"]
+        roles = [c.role for c in second_call_contents]
+        for i in range(len(roles) - 1):
+            self.assertNotEqual(roles[i], roles[i + 1], "Consecutive same-role messages detected!")
+        self.assertEqual(roles, ["user", "model", "user"])
+
+    @patch("agent.client")
+    @patch("agent.execute_tool")
+    def test_round_limit_fallback_preserves_system_instruction(self, mock_exec, mock_client):
+        """Round limit fallback preserves SYSTEM_INSTRUCTION instead of overwriting it."""
+        from agent import run_agent, MAX_TOOL_ROUNDS, SYSTEM_INSTRUCTION
+
+        tool_response = make_tool_call_response(("get_memory", {}))
+        mock_exec.return_value = {"minimum_match_score": 75}
+
+        responses = [tool_response] * MAX_TOOL_ROUNDS
+        responses.append(make_text_response("Final fallback summary."))
+        mock_client.models.generate_content.side_effect = responses
+
+        run_agent("Loop indefinitely.")
+
+        final_call_config = mock_client.models.generate_content.call_args_list[-1].kwargs["config"]
+        self.assertEqual(final_call_config.system_instruction, SYSTEM_INSTRUCTION)
+
+    def test_search_live_jobs_tool_schema_exposes_max_age_hours(self):
+        """search_live_jobs_tool exposes max_age_hours parameter in schema."""
+        from agent import search_live_jobs_tool
+        props = search_live_jobs_tool.parameters.properties
+        self.assertIn("max_age_hours", props)
+        self.assertEqual(props["max_age_hours"].type, "INTEGER")
+
+    @patch("agent.time.sleep")
+    @patch("agent.client")
+    def test_http_429_rate_limit_user_facing_message(self, mock_client, mock_sleep):
+        """HTTP 429 rate limit produces clear, specific message without leaking secrets."""
+        import io
+        from contextlib import redirect_stdout
+        from agent import run_agent
+
+        err = Exception("429 RESOURCE_EXHAUSTED: Rate limit exceeded")
+        err.code = 429
+        mock_client.models.generate_content.side_effect = err
+
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            run_agent("Find jobs")
+
+        output = buf.getvalue()
+        self.assertIn("[Agent error: Gemini API rate limit exceeded (HTTP 429).", output)
+        self.assertNotIn("API key", output)
+
+    @patch("agent.client")
+    def test_http_429_daily_quota_user_facing_message(self, mock_client):
+        """HTTP 429 daily quota exhaustion produces distinct actionable message."""
+        import io
+        from contextlib import redirect_stdout
+        from agent import run_agent
+
+        err = Exception("Quota exceeded: Daily request quota limit per day reached")
+        err.code = 429
+        mock_client.models.generate_content.side_effect = err
+
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            run_agent("Find jobs")
+
+        output = buf.getvalue()
+        self.assertIn("[Agent error: Gemini API daily quota exhausted (HTTP 429).", output)
+
+    @patch("agent.client")
+    def test_non_429_error_handling_preserved(self, mock_client):
+        """Non-429 errors retain generic could not reach Gemini message with error type."""
+        import io
+        from contextlib import redirect_stdout
+        from agent import run_agent
+
+        mock_client.models.generate_content.side_effect = ValueError("Corrupt response format")
+
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            run_agent("Find jobs")
+
+        output = buf.getvalue()
+        self.assertIn("[Agent error: could not reach Gemini (ValueError)]", output)
+
+    @patch("agent.time.sleep")
+    @patch("agent.client")
+    def test_rate_limit_retry_bounded_with_mocks(self, mock_client, mock_sleep):
+        """Transient 429 retries with bounded exponential backoff up to max_retries."""
+        from agent import _call_gemini_with_retry
+
+        err_429 = Exception("429 Too Many Requests")
+        err_429.code = 429
+
+        success_resp = make_text_response("Success after retry")
+        # First call fails with 429, second call succeeds
+        mock_client.models.generate_content.side_effect = [err_429, success_resp]
+
+        res = _call_gemini_with_retry(
+            client=mock_client,
+            model="gemini-2.5-flash",
+            contents=[],
+            config=None,
+            max_retries=2,
+            initial_delay=1.0,
+        )
+        self.assertEqual(res.text, "Success after retry")
+        mock_sleep.assert_called_once_with(1.0)
+        self.assertEqual(mock_client.models.generate_content.call_count, 2)
+
 
 if __name__ == "__main__":
     unittest.main()
+

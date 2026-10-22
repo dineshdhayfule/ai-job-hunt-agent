@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from .job_sources.base import verify_application_url
+from .job_sources.base import normalize_employment_type, verify_application_url
 from .job_sources.registry import (
     fetch_all_sources,
     initialize_default_adapters,
@@ -16,7 +17,7 @@ from .job_sources.registry import (
     merge_live_jobs,
     save_live_jobs,
 )
-from .match_jobs import calculate_match, load_json
+from .match_jobs import UNRESTRICTED_REMOTE_PATTERNS, calculate_match, load_json
 from .memory import load_memory
 
 logger = logging.getLogger(__name__)
@@ -48,6 +49,80 @@ def calculate_age_hours(dt: datetime, reference_dt: datetime | None = None) -> f
     return max(0.0, (now - dt).total_seconds() / 3600.0)
 
 
+def _matches_location(job_location: str, query_location: str) -> bool:
+    """Check if a job location satisfies the queried location.
+
+    Supports case-insensitive substring matching, and allows queries for
+    remote positions ('Remote') to match unrestricted remote designations
+    like 'Worldwide', 'Anywhere', 'Work from anywhere', or 'Global'.
+    """
+    if not query_location:
+        return True
+    job_loc = (job_location or "").lower()
+    query_loc = query_location.lower().strip()
+
+    if query_loc in job_loc:
+        return True
+
+    if "remote" in query_loc:
+        return any(pattern.search(job_loc) for pattern in UNRESTRICTED_REMOTE_PATTERNS)
+
+    return False
+
+
+def _matches_employment_type(
+    job_employment_type: str | None,
+    query_employment_type: str | None,
+) -> bool:
+    """Check if a job's employment type matches the queried type(s).
+
+    Supports canonical types (Full-time, Part-time, Contract, Internship, Freelance).
+    Accepts single types or multiple types separated by commas, slashes, pipes, or 'or'.
+    Compares normalized canonical values. If query is None or empty, returns True.
+    If a specific type is requested but the job's type is missing or unknown, returns False.
+    """
+    if not query_employment_type:
+        return True
+
+    raw_tokens = [
+        t.strip()
+        for t in re.split(r"[,/|]|\bor\b", query_employment_type, flags=re.IGNORECASE)
+        if t.strip()
+    ]
+    if not raw_tokens:
+        return True
+
+    if len(raw_tokens) == 1 and raw_tokens[0].lower() in {"all", "any"}:
+        return True
+
+    if not job_employment_type or not isinstance(job_employment_type, str):
+        return False
+
+    job_canonical = normalize_employment_type(job_employment_type)
+    if not job_canonical:
+        return False
+
+    query_canonicals = {
+        normalize_employment_type(token).lower()
+        for token in raw_tokens
+        if normalize_employment_type(token)
+    }
+
+    return job_canonical.lower() in query_canonicals
+
+
+def _clean_snippet(text: str | None, max_length: int = 200) -> str:
+    """Return a sanitized, single-line snippet of a job description."""
+    if not text or not isinstance(text, str):
+        return ""
+    cleaned = re.sub(r"<[^>]+>", "", text)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    if len(cleaned) <= max_length:
+        return cleaned
+    return cleaned[:max_length].rstrip() + "..."
+
+
+
 def search_live_jobs(
     sources: list[str] | None = None,
     search_query: str | None = None,
@@ -65,7 +140,7 @@ def search_live_jobs(
         sources: Which sources to query (default: all registered).
         search_query: Keyword to search for (passed to adapters).
         location: Filter results by location substring.
-        employment_type: Filter by employment type (e.g. "Internship").
+        employment_type: Filter by employment type (e.g. "Internship", "Full-time, Internship").
         fresher_only: If True, exclude jobs with confirmed experience requirements.
         min_match_score: Minimum match score to include (defaults to memory/profile: 75).
         max_age_hours: Maximum posting age in hours (e.g., 24, 72, 168).
@@ -75,6 +150,15 @@ def search_live_jobs(
     Returns:
         Dict with "jobs", "confirmed_matches", "potential_matches", "stats", "errors", and "source_info".
     """
+    # Validate max_age_hours if provided
+    if max_age_hours is not None:
+        try:
+            max_age_hours = int(max_age_hours)
+            if max_age_hours <= 0:
+                raise ValueError("max_age_hours must be a positive integer.")
+        except (ValueError, TypeError):
+            raise ValueError(f"Invalid max_age_hours: {max_age_hours}. Must be a positive integer.")
+
     # Initialize adapters if needed.
     initialize_default_adapters()
 
@@ -146,16 +230,12 @@ def search_live_jobs(
         match_result = calculate_match(adapted, profile)
 
         # Apply location filter if specified.
-        if location:
-            job_loc = (job.get("location") or "").lower()
-            if location.lower() not in job_loc:
-                continue
+        if location and not _matches_location(job.get("location", ""), location):
+            continue
 
         # Apply employment type filter if specified.
-        if employment_type:
-            job_type = (job.get("employment_type") or "").lower()
-            if employment_type.lower() not in job_type:
-                continue
+        if employment_type and not _matches_employment_type(job.get("employment_type"), employment_type):
+            continue
 
         # Exclude confirmed-ineligible jobs for fresher recommendations.
         eligibility = match_result.get("eligibility_status") or job.get("fresher_eligibility", "unknown")
@@ -227,6 +307,7 @@ def search_live_jobs(
             "is_potential_match": is_potential,
             "match_category": match_category,
             "source": job.get("source", ""),
+            "description_snippet": _clean_snippet(job.get("description"), 200),
             "apply_url": job.get("apply_url", ""),
             "source_url": job.get("source_url", ""),
             "url_status": url_status,

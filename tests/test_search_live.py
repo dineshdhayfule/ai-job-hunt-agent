@@ -17,7 +17,12 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from tools.search_live_jobs import _adapt_for_matching, search_live_jobs
+from tools.search_live_jobs import (
+    _adapt_for_matching,
+    _matches_employment_type,
+    _matches_location,
+    search_live_jobs,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -562,5 +567,317 @@ class TestSearchLiveJobs(unittest.TestCase):
             self._stop_patches(patches)
 
 
+
+    # -----------------------------------------------------------------------
+    # Regression tests: Remote location filtering
+    # -----------------------------------------------------------------------
+
+    def test_remote_matches_worldwide(self):
+        """location='Remote' matches a job with location 'Worldwide'."""
+        job = make_live_job(id="w1", location="Worldwide")
+        patches = self._patch_pipeline([job])
+        self._start_patches(patches)
+        try:
+            result = search_live_jobs(location="Remote", min_match_score=0)
+            self.assertEqual(result["count"], 1)
+            self.assertEqual(result["jobs"][0]["location"], "Worldwide")
+        finally:
+            self._stop_patches(patches)
+
+    def test_remote_matches_anywhere(self):
+        """location='Remote' matches a job with location 'Anywhere'."""
+        job = make_live_job(id="a1", location="Anywhere")
+        patches = self._patch_pipeline([job])
+        self._start_patches(patches)
+        try:
+            result = search_live_jobs(location="Remote", min_match_score=0)
+            self.assertEqual(result["count"], 1)
+            self.assertEqual(result["jobs"][0]["location"], "Anywhere")
+        finally:
+            self._stop_patches(patches)
+
+    def test_remote_matches_explicit_remote(self):
+        """location='Remote' matches a job explicitly labelled 'Remote, India'."""
+        job = make_live_job(id="r1", location="Remote, India")
+        patches = self._patch_pipeline([job])
+        self._start_patches(patches)
+        try:
+            result = search_live_jobs(location="Remote", min_match_score=0)
+            self.assertEqual(result["count"], 1)
+            self.assertEqual(result["jobs"][0]["location"], "Remote, India")
+        finally:
+            self._stop_patches(patches)
+
+    def test_mumbai_does_not_match_worldwide(self):
+        """location='Mumbai' does not match a job located only in 'Worldwide'."""
+        job = make_live_job(id="w2", location="Worldwide")
+        patches = self._patch_pipeline([job])
+        self._start_patches(patches)
+        try:
+            result = search_live_jobs(location="Mumbai", min_match_score=0)
+            self.assertEqual(result["count"], 0)
+        finally:
+            self._stop_patches(patches)
+
+    def test_unrelated_location_does_not_match(self):
+        """An unrelated location query does not become a match."""
+        jobs = [
+            make_live_job(id="j1", location="Mumbai, India"),
+            make_live_job(id="j2", location="Tokyo, Japan"),
+        ]
+        patches = self._patch_pipeline(jobs)
+        self._start_patches(patches)
+        try:
+            result = search_live_jobs(location="Berlin", min_match_score=0)
+            self.assertEqual(result["count"], 0)
+        finally:
+            self._stop_patches(patches)
+
+    def test_existing_location_filter_intact(self):
+        """Existing location-filtering behavior remains intact (case-insensitive substring)."""
+        jobs = [
+            make_live_job(id="m1", location="Mumbai, India"),
+            make_live_job(id="b1", location="Bangalore, India"),
+        ]
+        patches = self._patch_pipeline(jobs)
+        self._start_patches(patches)
+        try:
+            result = search_live_jobs(location="mumbai", min_match_score=0)
+            self.assertEqual(result["count"], 1)
+            self.assertEqual(result["jobs"][0]["location"], "Mumbai, India")
+        finally:
+            self._stop_patches(patches)
+
+    # -----------------------------------------------------------------------
+    # Regression tests: Employment type filtering
+    # -----------------------------------------------------------------------
+
+    def test_employment_type_full_time_matches_full_time(self):
+        """1. Full-time matches Full-time."""
+        self.assertTrue(_matches_employment_type("Full-time", "Full-time"))
+        job = make_live_job(id="ft1", employment_type="Full-time")
+        patches = self._patch_pipeline([job])
+        self._start_patches(patches)
+        try:
+            result = search_live_jobs(employment_type="Full-time", min_match_score=0)
+            self.assertEqual(result["count"], 1)
+            self.assertEqual(result["jobs"][0]["employment_type"], "Full-time")
+        finally:
+            self._stop_patches(patches)
+
+    def test_employment_type_full_time_rejects_contract(self):
+        """2. Full-time rejects Contract."""
+        self.assertFalse(_matches_employment_type("Contract", "Full-time"))
+        job = make_live_job(id="c1", employment_type="Contract")
+        patches = self._patch_pipeline([job])
+        self._start_patches(patches)
+        try:
+            result = search_live_jobs(employment_type="Full-time", min_match_score=0)
+            self.assertEqual(result["count"], 0)
+        finally:
+            self._stop_patches(patches)
+
+    def test_employment_type_internship_rejects_full_time(self):
+        """3. Internship rejects Full-time."""
+        self.assertFalse(_matches_employment_type("Full-time", "Internship"))
+        job = make_live_job(id="ft2", employment_type="Full-time")
+        patches = self._patch_pipeline([job])
+        self._start_patches(patches)
+        try:
+            result = search_live_jobs(employment_type="Internship", min_match_score=0)
+            self.assertEqual(result["count"], 0)
+        finally:
+            self._stop_patches(patches)
+
+    def test_employment_type_internship_matches_internship(self):
+        """4. Internship matches Internship."""
+        self.assertTrue(_matches_employment_type("Internship", "Internship"))
+        job = make_live_job(id="in1", employment_type="Internship")
+        patches = self._patch_pipeline([job])
+        self._start_patches(patches)
+        try:
+            result = search_live_jobs(employment_type="Internship", min_match_score=0)
+            self.assertEqual(result["count"], 1)
+            self.assertEqual(result["jobs"][0]["employment_type"], "Internship")
+        finally:
+            self._stop_patches(patches)
+
+    def test_employment_type_comma_separated_matches_both(self):
+        """5. 'Full-time, Internship' matches both requested types."""
+        self.assertTrue(_matches_employment_type("Full-time", "Full-time, Internship"))
+        self.assertTrue(_matches_employment_type("Internship", "Full-time, Internship"))
+        self.assertFalse(_matches_employment_type("Contract", "Full-time, Internship"))
+        jobs = [
+            make_live_job(id="j_ft", employment_type="Full-time"),
+            make_live_job(id="j_in", employment_type="Internship"),
+            make_live_job(id="j_ct", employment_type="Contract"),
+        ]
+        patches = self._patch_pipeline(jobs)
+        self._start_patches(patches)
+        try:
+            result = search_live_jobs(employment_type="Full-time, Internship", min_match_score=0)
+            self.assertEqual(result["count"], 2)
+            types_found = {j["employment_type"] for j in result["jobs"]}
+            self.assertEqual(types_found, {"Full-time", "Internship"})
+        finally:
+            self._stop_patches(patches)
+
+    def test_employment_type_slash_separated_matches_both(self):
+        """6. 'Full-time/Contract' matches both requested types."""
+        self.assertTrue(_matches_employment_type("Full-time", "Full-time/Contract"))
+        self.assertTrue(_matches_employment_type("Contract", "Full-time/Contract"))
+        self.assertFalse(_matches_employment_type("Internship", "Full-time/Contract"))
+        jobs = [
+            make_live_job(id="j_ft", employment_type="Full-time"),
+            make_live_job(id="j_ct", employment_type="Contract"),
+            make_live_job(id="j_in", employment_type="Internship"),
+        ]
+        patches = self._patch_pipeline(jobs)
+        self._start_patches(patches)
+        try:
+            result = search_live_jobs(employment_type="Full-time/Contract", min_match_score=0)
+            self.assertEqual(result["count"], 2)
+            types_found = {j["employment_type"] for j in result["jobs"]}
+            self.assertEqual(types_found, {"Full-time", "Contract"})
+        finally:
+            self._stop_patches(patches)
+
+    def test_employment_type_missing_rejected_by_specific_filter(self):
+        """7. Missing employment type is rejected by a specific filter."""
+        self.assertFalse(_matches_employment_type("", "Full-time"))
+        self.assertFalse(_matches_employment_type(None, "Full-time"))
+        job = make_live_job(id="no_type", employment_type="")
+        patches = self._patch_pipeline([job])
+        self._start_patches(patches)
+        try:
+            result = search_live_jobs(employment_type="Full-time", min_match_score=0)
+            self.assertEqual(result["count"], 0)
+        finally:
+            self._stop_patches(patches)
+
+    def test_employment_type_missing_survives_unrestricted_search(self):
+        """8. Missing employment type survives an unrestricted search."""
+        self.assertTrue(_matches_employment_type("", None))
+        self.assertTrue(_matches_employment_type("", ""))
+        job = make_live_job(id="no_type", employment_type="")
+        patches = self._patch_pipeline([job])
+        self._start_patches(patches)
+        try:
+            result = search_live_jobs(employment_type=None, min_match_score=0)
+            self.assertEqual(result["count"], 1)
+        finally:
+            self._stop_patches(patches)
+
+    def test_employment_type_contract_survives_unrestricted_search(self):
+        """9. Contract survives an unrestricted search."""
+        self.assertTrue(_matches_employment_type("Contract", None))
+        job = make_live_job(id="ct_survives", employment_type="Contract")
+        patches = self._patch_pipeline([job])
+        self._start_patches(patches)
+        try:
+            result = search_live_jobs(employment_type=None, min_match_score=0)
+            self.assertEqual(result["count"], 1)
+            self.assertEqual(result["jobs"][0]["employment_type"], "Contract")
+        finally:
+            self._stop_patches(patches)
+
+    def test_employment_type_unknown_not_matched_to_known(self):
+        """10. Unknown employment types are not incorrectly matched to a known type."""
+        self.assertFalse(_matches_employment_type("Volunteer", "Full-time"))
+        self.assertFalse(_matches_employment_type("Advisory", "Internship"))
+        job = make_live_job(id="vol", employment_type="Volunteer")
+        patches = self._patch_pipeline([job])
+        self._start_patches(patches)
+        try:
+            result = search_live_jobs(employment_type="Full-time", min_match_score=0)
+            self.assertEqual(result["count"], 0)
+        finally:
+            self._stop_patches(patches)
+
+    def test_employment_type_normalization_variants(self):
+        """11. Existing employment-type normalization remains intact."""
+        from tools.job_sources.base import normalize_employment_type
+        self.assertEqual(normalize_employment_type("full-time"), "Full-time")
+        self.assertEqual(normalize_employment_type("fulltime"), "Full-time")
+        self.assertEqual(normalize_employment_type("part-time"), "Part-time")
+        self.assertEqual(normalize_employment_type("contractor"), "Contract")
+        self.assertEqual(normalize_employment_type("intern"), "Internship")
+        self.assertEqual(normalize_employment_type("freelance"), "Freelance")
+        self.assertTrue(_matches_employment_type("fulltime", "Full-time"))
+        self.assertTrue(_matches_employment_type("contractor", "Contract"))
+        self.assertTrue(_matches_employment_type("intern", "Internship"))
+
+    def test_max_age_hours_reaches_search_via_execute_tool(self):
+        """max_age_hours=168 forwards to search_live_jobs through execute_tool."""
+        from agent import execute_tool
+        from datetime import datetime, timezone, timedelta
+        now = datetime.now(timezone.utc)
+        recent_dt = (now - timedelta(hours=48)).isoformat()
+        old_dt = (now - timedelta(hours=200)).isoformat()
+
+        job_recent = make_live_job(id="j-rec", title="Software Engineer", posted_at=recent_dt)
+        job_old = make_live_job(id="j-old", title="Software Engineer", posted_at=old_dt)
+
+        patches = self._patch_pipeline([job_recent, job_old])
+        self._start_patches(patches)
+        try:
+            res = execute_tool("search_live_jobs", {"max_age_hours": 168, "min_match_score": 0})
+            self.assertTrue(res.get("success", True))
+            job_ids = [j["title"] for j in res.get("jobs", [])]
+            # Old job (200h) must be excluded, recent job (48h) must survive
+            self.assertEqual(len(res["jobs"]), 1)
+            self.assertEqual(res["jobs"][0]["posted_at"], recent_dt)
+        finally:
+            self._stop_patches(patches)
+
+    def test_invalid_max_age_hours_not_silently_unrestricted(self):
+        """Invalid max_age_hours raises ValueError and is reported as validation error."""
+        from agent import execute_tool
+        patches = self._patch_pipeline([])
+        self._start_patches(patches)
+        try:
+            res = execute_tool("search_live_jobs", {"max_age_hours": "invalid_number"})
+            self.assertFalse(res["success"])
+            self.assertIn("Validation error", res["error"])
+
+            res_neg = execute_tool("search_live_jobs", {"max_age_hours": -24})
+            self.assertFalse(res_neg["success"])
+            self.assertIn("Validation error", res_neg["error"])
+        finally:
+            self._stop_patches(patches)
+
+    def test_max_age_hours_omitted_remains_backward_compatible(self):
+        """Calls omitting max_age_hours continue to work without age restrictions."""
+        from agent import execute_tool
+        from datetime import datetime, timezone, timedelta
+        now = datetime.now(timezone.utc)
+        old_dt = (now - timedelta(hours=500)).isoformat()
+        job = make_live_job(id="j-old", title="Software Engineer", posted_at=old_dt)
+
+        patches = self._patch_pipeline([job])
+        self._start_patches(patches)
+        try:
+            res = execute_tool("search_live_jobs", {"min_match_score": 0})
+            self.assertTrue(res.get("success", True))
+            self.assertEqual(len(res["jobs"]), 1)
+        finally:
+            self._stop_patches(patches)
+
+    def test_description_snippet_sanitized_and_truncated(self):
+        """Description snippet is sanitized of HTML and truncated to 200 chars."""
+        from tools.search_live_jobs import _clean_snippet
+        html_text = "<p>Join our team as a <b>Python Engineer</b>! We offer remote work.</p>"
+        clean = _clean_snippet(html_text, max_length=200)
+        self.assertNotIn("<p>", clean)
+        self.assertNotIn("<b>", clean)
+        self.assertIn("Join our team as a Python Engineer!", clean)
+
+        long_text = "Word " * 100  # 500 chars
+        truncated = _clean_snippet(long_text, max_length=100)
+        self.assertTrue(len(truncated) <= 103)  # 100 chars + '...'
+        self.assertTrue(truncated.endswith("..."))
+
+
 if __name__ == "__main__":
     unittest.main()
+
