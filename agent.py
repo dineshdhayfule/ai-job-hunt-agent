@@ -125,14 +125,15 @@ search_live_jobs_tool = types.FunctionDeclaration(
                 "type": "NUMBER",
                 "description": (
                     "Minimum match score (0-100). Uses saved "
-                    "preference if not specified."
+                    "preference (default 50) if not specified."
                 ),
             },
             "max_age_hours": {
                 "type": "INTEGER",
                 "description": (
-                    "Maximum posting age in hours (e.g. 24 for the last 24 hours, "
-                    "168 for the last 7 days). Omit to search without age restrictions."
+                    "Maximum posting age in hours (e.g. 24 for 24 hours / 1 day, "
+                    "72 for 3 days / 72 hours, 168 for 7 days / 1 week). "
+                    "Omit to search without age restrictions."
                 ),
             },
             "limit": {
@@ -267,7 +268,15 @@ SYSTEM_INSTRUCTION = (
     "update_preferences. Never claim a change succeeded unless the "
     "tool confirms success.\n"
     "- When displaying live jobs, always include: title, company, "
-    "location, employment type, match score, source, and application URL.\n"
+    "location, employment type, posting age (state clearly if unknown), "
+    "match score, source, and application URL. If a job's posting date is unknown, "
+    "report it honestly and do not fabricate a posting age.\n"
+    "- When the user specifies a posting-age window, you MUST pass the correct "
+    "max_age_hours argument to search_live_jobs: 24 for 24 hours (1 day), 72 for 3 days "
+    "(72 hours), or 168 for 7 days (1 week). If the user specifies no timeframe, "
+    "leave posting age unrestricted (omit max_age_hours) unless another existing configured "
+    "rule applies. Never merely mention the timeframe in your text answer without passing "
+    "max_age_hours to the tool.\n"
     "- Fresher eligibility marked as 'unknown' means the source did not "
     "specify experience requirements — do not claim the job is suitable "
     "for freshers when eligibility is unknown.\n"

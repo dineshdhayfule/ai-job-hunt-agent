@@ -10,7 +10,7 @@ The agent collects job listings from supported sources, evaluates them against a
 - **Personalized matching** — evaluates skills, role relevance, and location compatibility.
 - **Freshness filtering** — supports 24-hour, 72-hour, and 7-day search windows.
 - **Fresher eligibility assessment** — separates confirmed eligibility, unknown eligibility, and ineligible listings.
-- **Configurable match threshold** — defaults to a minimum match score of 75%.
+- **Configurable match threshold** — defaults to a minimum match score of 50%.
 - **Remote-location awareness** — recognizes worldwide remote listings while respecting explicit geographic restrictions.
 - **Caching and persistence** — reduces unnecessary API requests and saves retrieved listings.
 - **Automated testing** — unit tests cover matching, live search, and job-source behavior.
@@ -39,7 +39,7 @@ The normalized match score is calculated as:
 
 `match_score = weighted_score / 85 × 100`
 
-The default minimum match threshold is **75%**.
+The default minimum match threshold is **50%**.
 
 ### Match classifications
 
@@ -169,7 +169,7 @@ The agent supports:
 - Supported job sources
 - Source caching
 
-The default match threshold is 75%. Freshness filtering supports windows of 24, 72, and 168 hours (7 days).
+The default match threshold is 50%. Freshness filtering supports windows of 24, 72, and 168 hours (7 days).
 
 ## Verification Status
 

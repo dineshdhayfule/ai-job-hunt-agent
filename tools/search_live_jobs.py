@@ -142,7 +142,7 @@ def search_live_jobs(
         location: Filter results by location substring.
         employment_type: Filter by employment type (e.g. "Internship", "Full-time, Internship").
         fresher_only: If True, exclude jobs with confirmed experience requirements.
-        min_match_score: Minimum match score to include (defaults to memory/profile: 75).
+        min_match_score: Minimum match score to include (defaults to memory/profile: 50).
         max_age_hours: Maximum posting age in hours (e.g., 24, 72, 168).
         verify_urls: If True, verify application URL reachability.
         limit: Maximum results to return.
@@ -195,7 +195,7 @@ def search_live_jobs(
     if min_match_score is None:
         min_match_score = memory.get("minimum_match_score")
         if min_match_score is None:
-            min_match_score = profile.get("minimum_match_score", 75)
+            min_match_score = profile.get("minimum_match_score", 50)
 
     mem_roles = memory.get("preferred_roles", [])
     if mem_roles:

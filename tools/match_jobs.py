@@ -309,7 +309,7 @@ def calculate_match(
         if preferred_types else True
     )
 
-    minimum_score = profile.get("minimum_match_score", 75)
+    minimum_score = profile.get("minimum_match_score", 50)
     meets_threshold = total_score >= minimum_score
 
     return {
@@ -371,7 +371,7 @@ def main() -> None:
         print(f"Could not load matching data: {error}")
         return
 
-    minimum_score = profile.get("minimum_match_score", 75)
+    minimum_score = profile.get("minimum_match_score", 50)
 
     print("\n=== Personalized Job Matches ===")
     print(f"Minimum match score: {minimum_score}%")

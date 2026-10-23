@@ -3,6 +3,7 @@
     "Software Engineer",
     "Software Development Engineer",
     "Backend Developer",
+    "Backend Engineer",
     "Java Developer",
     "Full Stack Developer",
     "Software Engineer Intern",
@@ -178,12 +179,17 @@
   ],
   "preferred_locations": [
     "Remote, India",
-    "Mumbai, India"
+    "Mumbai, India",
+    "Pune, India",
+    "Thane, India",
+    "Hyderabad, India",
+    "Bengaluru, India"
   ],
   "willing_to_relocate": true,
   "preferred_employment_types": [
     "Full-time",
-    "Internship"
+    "Internship",
+    "Contract"
   ],
-  "minimum_match_score": 75
+  "minimum_match_score": 50
 }

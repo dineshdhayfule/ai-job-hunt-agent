@@ -469,5 +469,47 @@ class TestMatchJobs(unittest.TestCase):
             match_jobs(self.profile_path, self.jobs_path)
 
 
+    def test_default_minimum_score_fallback_to_50_when_absent(self):
+        """When minimum_match_score is omitted from profile, default threshold is 50.0%."""
+        profile_without_min = {k: v for k, v in TEST_PROFILE.items() if k != "minimum_match_score"}
+        # Craft a job that scores ~58.8%
+        # skills: 4 of 8 = 50% -> 50 * 50 = 2500
+        # role: 100% -> 20 * 100 = 2000
+        # location: 100% (Remote, India) -> 15 * 100 = 1500
+        # Total = (2500 + 2000 + 1500) / 85 = 6000 / 85 = 70.58% >= 50
+        job_passing = make_job(skills=["Python", "Java", "UnknownA", "UnknownB"])
+        res_pass = calculate_match(job_passing, profile_without_min)
+        self.assertTrue(res_pass["meets_threshold"])
+
+        # Craft a job with score below 50%:
+        # skills: 0 matching = 0
+        # role: 100% -> 20 * 100 = 2000
+        # location: non-relocating London = 0
+        # Total = 2000 / 85 = 23.53% < 50
+        no_reloc_profile = {**profile_without_min, "willing_to_relocate": False}
+        job_failing = make_job(skills=["UnknownA", "UnknownB"], location="London, UK")
+        res_fail = calculate_match(job_failing, no_reloc_profile)
+        self.assertLess(res_fail["match_score"], 50.0)
+        self.assertFalse(res_fail["meets_threshold"])
+
+    def test_threshold_override_in_profile(self):
+        """Profile explicit minimum_match_score overrides the 50% default."""
+        profile_override = {**TEST_PROFILE, "minimum_match_score": 80}
+        # A job scoring 75% should not meet the 80% threshold
+        job = make_job(
+            skills=[
+                "Java", "Python", "JavaScript", "React",
+                "Node.js", "Express", "REST APIs", "UnknownSkill",
+            ],
+            title="Software Engineer",
+            location="London, UK",
+        )
+        no_reloc = {**profile_override, "willing_to_relocate": False}
+        res = calculate_match(job, no_reloc)
+        self.assertEqual(res["match_score"], 75.0)
+        self.assertFalse(res["meets_threshold"])
+
+
 if __name__ == "__main__":
     unittest.main()
+

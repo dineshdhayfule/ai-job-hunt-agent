@@ -878,6 +878,92 @@ class TestSearchLiveJobs(unittest.TestCase):
         self.assertTrue(truncated.endswith("..."))
 
 
+    def test_default_minimum_match_score_50_fallback(self):
+        """When memory and profile lack minimum_match_score, fallback is 50%."""
+        job_55 = make_live_job(
+            id="j55",
+            skills=["Python", "Java"],
+            title="Software Engineer",
+            location="Remote, India",
+        )
+        # Patch memory and profile without minimum_match_score
+        patches = self._patch_pipeline([job_55], memory_score=None)
+        # Modify profile fixture to lack minimum_match_score
+        profile_no_min = {k: v for k, v in TEST_PROFILE.items() if k != "minimum_match_score"}
+        from unittest.mock import patch
+        patches["profile_mock"] = patch("tools.search_live_jobs.load_json", return_value=profile_no_min)
+        self._start_patches(patches)
+        try:
+            result = search_live_jobs(min_match_score=None)
+            self.assertEqual(result["count"], 1)
+            self.assertGreaterEqual(result["jobs"][0]["match_score"], 50)
+        finally:
+            self._stop_patches(patches)
+
+    def test_explicit_min_match_score_overrides_memory(self):
+        """Explicit min_match_score parameter overrides the saved memory score."""
+        job = make_live_job(
+            id="j_mid",
+            skills=["Python", "Java"],
+            title="Software Engineer",
+            location="Remote, India",
+        )
+        # memory has 50
+        patches = self._patch_pipeline([job], memory_score=50)
+        self._start_patches(patches)
+        try:
+            # Overriding with 95 should filter it out if score is below 95
+            res_strict = search_live_jobs(min_match_score=95)
+            self.assertEqual(res_strict["count"], 0)
+
+            # Overriding with 20 should include it
+            res_lenient = search_live_jobs(min_match_score=20)
+            self.assertEqual(res_lenient["count"], 1)
+        finally:
+            self._stop_patches(patches)
+
+    def test_max_age_hours_72_filters_appropriately(self):
+        """max_age_hours=72 (3 days) retains 48h-old job and excludes 80h-old job."""
+        from agent import execute_tool
+        from datetime import datetime, timezone, timedelta
+        now = datetime.now(timezone.utc)
+        dt_48h = (now - timedelta(hours=48)).isoformat()
+        dt_80h = (now - timedelta(hours=80)).isoformat()
+
+        job_48h = make_live_job(id="j48", title="Software Engineer", posted_at=dt_48h)
+        job_80h = make_live_job(id="j80", title="Software Engineer", posted_at=dt_80h)
+
+        patches = self._patch_pipeline([job_48h, job_80h])
+        self._start_patches(patches)
+        try:
+            res = execute_tool("search_live_jobs", {"max_age_hours": 72, "min_match_score": 0})
+            self.assertTrue(res.get("success", True))
+            self.assertEqual(len(res["jobs"]), 1)
+            self.assertEqual(res["jobs"][0]["posted_at"], dt_48h)
+        finally:
+            self._stop_patches(patches)
+
+    def test_agent_tool_declaration_and_instruction_for_posting_age(self):
+        """Agent declarations include 24h, 72h (3 days), 168h (7 days), and min score 50."""
+        from agent import search_live_jobs_tool, SYSTEM_INSTRUCTION
+        props = getattr(search_live_jobs_tool.parameters, "properties", {})
+        max_age_desc = getattr(props["max_age_hours"], "description", "")
+        min_score_desc = getattr(props["min_match_score"], "description", "")
+
+        self.assertIn("24", max_age_desc)
+        self.assertIn("72", max_age_desc)
+        self.assertIn("168", max_age_desc)
+        self.assertIn("3 days", max_age_desc)
+        self.assertIn("50", min_score_desc)
+
+        self.assertIn("max_age_hours", SYSTEM_INSTRUCTION)
+        self.assertIn("72", SYSTEM_INSTRUCTION)
+        self.assertIn("168", SYSTEM_INSTRUCTION)
+        self.assertIn("24", SYSTEM_INSTRUCTION)
+
+
 if __name__ == "__main__":
     unittest.main()
+
+
 

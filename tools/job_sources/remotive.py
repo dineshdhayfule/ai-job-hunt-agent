@@ -33,6 +33,16 @@ API_URL = "https://remotive.com/api/remote-jobs"
 DEFAULT_TIMEOUT = (10, 30)  # (connect, read) seconds
 
 
+DEFAULT_HEADERS = {
+    "Accept": "application/json",
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/124.0.0.0 Safari/537.36 JobHuntAgent/1.0"
+    ),
+}
+
+
 class RemotiveAdapter(JobSourceAdapter):
     """Fetch remote software jobs from the Remotive public API."""
 
@@ -68,36 +78,57 @@ class RemotiveAdapter(JobSourceAdapter):
                 API_URL,
                 params=params,
                 timeout=DEFAULT_TIMEOUT,
-                headers={"Accept": "application/json"},
+                headers=DEFAULT_HEADERS,
             )
             response.raise_for_status()
-        except requests.exceptions.Timeout:
-            return self._make_error_result(
-                "Remotive API request timed out."
+        except requests.exceptions.Timeout as exc:
+            logger.warning(
+                "Remotive API request timed out (timeout=%s): %s",
+                DEFAULT_TIMEOUT,
+                exc,
             )
-        except requests.exceptions.ConnectionError:
             return self._make_error_result(
-                "Could not connect to Remotive API."
+                f"Remotive API request timed out ({type(exc).__name__}: {exc})."
+            )
+        except requests.exceptions.ConnectionError as exc:
+            logger.warning(
+                "Remotive API connection error: %s (type: %s)",
+                exc,
+                type(exc).__name__,
+            )
+            return self._make_error_result(
+                f"Could not connect to Remotive API ({type(exc).__name__}: {exc})."
             )
         except requests.exceptions.HTTPError as exc:
             status = exc.response.status_code if exc.response else "unknown"
+            logger.warning("Remotive API HTTP error %s: %s", status, exc)
             return self._make_error_result(
                 f"Remotive API returned HTTP {status}."
             )
         except requests.exceptions.RequestException as exc:
+            logger.warning(
+                "Remotive API request failed: %s (type: %s)",
+                exc,
+                type(exc).__name__,
+            )
             return self._make_error_result(
-                f"Remotive API request failed: {exc}"
+                f"Remotive API request failed ({type(exc).__name__}: {exc})."
             )
 
         try:
             data = response.json()
-        except ValueError:
+        except ValueError as exc:
+            logger.warning("Remotive API returned invalid JSON: %s", exc)
             return self._make_error_result(
-                "Remotive API returned invalid JSON."
+                f"Remotive API returned invalid JSON ({type(exc).__name__}: {exc})."
             )
 
         raw_jobs = data.get("jobs", [])
         if not isinstance(raw_jobs, list):
+            logger.warning(
+                "Remotive API returned unexpected data format: expected list of jobs, got %s",
+                type(raw_jobs).__name__,
+            )
             return self._make_error_result(
                 "Remotive API returned unexpected data format."
             )

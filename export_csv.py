@@ -22,7 +22,7 @@ OUTPUT_CSV_PATH = BASE_DIR / "agent_output.csv"
 def generate_agent_output_csv(output_path: Path = OUTPUT_CSV_PATH) -> list[dict[str, Any]]:
     """Generate agent_output.csv from real evaluated listings."""
     profile = load_json(PROFILE_PATH)
-    min_match_score = profile.get("minimum_match_score", 75.0)
+    min_match_score = profile.get("minimum_match_score", 50.0)
 
     live_jobs = load_live_jobs()
     evaluated_rows: list[dict[str, Any]] = []

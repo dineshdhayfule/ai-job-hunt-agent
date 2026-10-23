@@ -1,12 +1,21 @@
 {
   "preferred_roles": [
-    "backend developer"
+    "backend developer",
+    "software engineer",
+    "software development engineer",
+    "Java developer",
+    "full stack developer",
+    "backend engineer",
+    "software engineer intern",
+    "backend developer intern",
+    "Java developer intern",
+    "full stack developer intern"
   ],
   "preferred_locations": [
     "Remote, India",
     "Mumbai, India"
   ],
-  "minimum_match_score": 75,
+  "minimum_match_score": 50,
   "skills_to_learn": [],
   "excluded_companies": [],
   "search_history": [
@@ -68,10 +77,20 @@
       "query": "live remote software engineer jobs worldwide posted in the last 7 days (168 hours), including full-time, internship, or contract roles.",
       "filters": {
         "employment_type": "Full-time, Internship, Contract",
-        "location": "Remote"
+        "location": "Remote",
+        "max_age_hours": 168
       },
       "results_count": 1,
       "timestamp": "2026-10-22T11:08:13.614295+00:00"
+    },
+    {
+      "query": "Search for remote software engineering jobs worldwide posted within the last 3 days (72 hours). Include full-time, internship, and contract roles. Use my saved profile, a minimum match score of 50%, and return the job title, company, location, employment type, match score, posting age, and application URL. Explain the strongest matches using the actual job descriptions and identify whether I am eligible as a 2026 fresher. Pass `max_age_hours=72` explicitly to the live search tool. Save the search in memory and report any source errors or jobs with unknown posting dates honestly.",
+      "filters": {
+        "location": "Remote",
+        "employment_type": "Full-time, Internship, Contract"
+      },
+      "results_count": 0,
+      "timestamp": "2026-10-23T11:57:47.099341+00:00"
     }
   ]
 }
