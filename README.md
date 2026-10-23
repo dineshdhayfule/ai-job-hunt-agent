@@ -201,4 +201,3 @@ These results demonstrate the tested functionality, not guaranteed discovery of 
 ## Disclaimer
 
 This project is a personal job-search assistance tool. Match scores are estimates based on available listing data and configured preferences. They do not guarantee eligibility, vacancy availability, or hiring outcomes. Verify all requirements directly with the employer before applying.
-
